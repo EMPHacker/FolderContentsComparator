@@ -19,15 +19,15 @@ namespace FileCompare
             public string Name;
             public string FolderPath;
             public bool Duplicate;
-            public List<FileItem> Files;
-            public List<FolderStructure> Subdirectories;
 
+            public Dictionary<string, bool> Files;
+            public Dictionary<string, FolderStructure> Subdirectories;
             
             public FolderStructure()
             {
                 Duplicate = false;
-                Files = new List<FileItem>();
-                Subdirectories = new List<FolderStructure>();
+                Files = new Dictionary<string, bool>();
+                Subdirectories = new Dictionary<string, FolderStructure>();
             }
         }
         public class FileItem
@@ -38,6 +38,8 @@ namespace FileCompare
 
         FolderStructure Folder1;
         FolderStructure Folder2;
+        TreeViewItem RootNode1;
+        TreeViewItem RootNode2;
 
         public MainWindow()
         {
@@ -83,47 +85,48 @@ namespace FileCompare
         {
             if ((URLFolder1.Text != "") && (URLFolder1.Text != ""))
             {
-                VisualFeedbackBar.Visibility = Visibility.Visible;
-
-                Task GetFiles = Task.Factory.StartNew(() =>
+                if ((RootNode1 is null) && (RootNode2 is null))
                 {
-                    ProcessSubdirectory(Folder1, Folder1.FolderPath);
-                    ProcessSubdirectory(Folder2, Folder2.FolderPath);
-                });
+                    VisualFeedbackBar.Visibility = Visibility.Visible;
 
-                GetFiles.Wait();
-
-                if (GetFiles.IsCompleted)
-                {
-                    TreeViewItem RootNode1 = new TreeViewItem
+                    Task GetFiles = Task.Factory.StartNew(() =>
                     {
-                        Header = Folder1.Name,
-                        FontWeight = FontWeights.Normal
-                    };
-                    TreeViewItem RootNode2 = new TreeViewItem
-                    {
-                        Header = Folder2.Name,
-                        FontWeight = FontWeights.Normal
-                    };
-
-                    Task SortFiles = Task.Factory.StartNew(() =>
-                    {
-                        SortFolders(Folder1);
-                        SortFolders(Folder2);
+                        ProcessSubdirectory(Folder1, Folder1.FolderPath);
+                        ProcessSubdirectory(Folder2, Folder2.FolderPath);
                     });
-                    SortFiles.Wait();
 
-                    if (SortFiles.IsCompleted)
+                    GetFiles.Wait();
+
+                    if (GetFiles.IsCompleted)
                     {
-                        CompareFolders(Folder1, Folder2);
+                        RootNode1 = new TreeViewItem
+                        {
+                            Header = Folder1.Name,
+                            FontWeight = FontWeights.Normal
+                        };
+                        RootNode2 = new TreeViewItem
+                        {
+                            Header = Folder2.Name,
+                            FontWeight = FontWeights.Normal
+                        };
 
-                        GenerateTreeNodes(Folder1, RootNode1);
-                        GenerateTreeNodes(Folder2, RootNode2);
+                        Task CompGen = Task.Factory.StartNew(() =>
+                        {
+                            CompareFolders(Folder1, Folder2);
+                            CompareFolders(Folder2, Folder1);
+                        });
+                        CompGen.Wait();
 
-                        ContentsFolder1.Items.Add(RootNode1);
-                        ContentsFolder2.Items.Add(RootNode2);
+                        if (CompGen.IsCompleted)
+                        {
+                            GenerateTreeNodes(Folder1, RootNode1);
+                            GenerateTreeNodes(Folder2, RootNode2);
 
-                        VisualFeedbackBar.Visibility = Visibility.Hidden;
+                            ContentsFolder1.Items.Add(RootNode1);
+                            ContentsFolder2.Items.Add(RootNode2);
+
+                            VisualFeedbackBar.Visibility = Visibility.Hidden;
+                        }
                     }
                 }
             }
@@ -139,12 +142,8 @@ namespace FileCompare
             string[] fileslist = Directory.GetFiles(directoryPath);
             foreach (string filename in fileslist)
             {
-                FileItem newfile = new FileItem
-                {
-                    FileName = filename.Split('\\').Last(),
-                    Duplicate = false
-                };
-                thisDirectory.Files.Add(newfile);
+                string scrubbedname = filename.Split('\\').Last();
+                thisDirectory.Files.Add(scrubbedname, false);
             }
 
             // Recurse into subdirectories of this directory.
@@ -156,83 +155,159 @@ namespace FileCompare
                     Name = subdir.Split('\\').Last(),
                     FolderPath = subdir
                 };
-                thisDirectory.Subdirectories.Add(NewSubfolder);
+                thisDirectory.Subdirectories.Add(NewSubfolder.Name, NewSubfolder);
 
                 ProcessSubdirectory(NewSubfolder, subdir);
             }
         }
-
-        public void SortFolders(FolderStructure folder)
-        {
-            //folder.Files.Sort(x => x.FileName); var sortedEnumerable = 
-            folder.Files.OrderBy(p => p.FileName);
-
-            foreach (FolderStructure subdir in folder.Subdirectories)
-            {
-                SortFolders(subdir);
-            }
-        }
-
+        
         private void CompareFolders(FolderStructure firstFolder, FolderStructure secondFolder)
         {
-            int fffcount = firstFolder.Files.Count();
-            int sffcount = secondFolder.Files.Count();
-
-            if ( fffcount == sffcount)
+            foreach (KeyValuePair<string, bool> file in firstFolder.Files)
             {
-                for (int i = 0; i < fffcount; i++)
+                if (secondFolder.Files.ContainsKey(file.Key))
                 {
-                    if (firstFolder.Files[i].FileName == secondFolder.Files[i].FileName)
-                    {
-                        firstFolder.Files[i].Duplicate = true;
-                        secondFolder.Files[i].Duplicate = true;
-                    }                    
+                    secondFolder.Files[file.Key] = true;
                 }
             }
 
-            int ffsfcount = firstFolder.Subdirectories.Count();
-            int sfsfcount = secondFolder.Subdirectories.Count();
-
-            for (int i = 0; i < ffsfcount; i++)
+            foreach (KeyValuePair<string, FolderStructure> subdir in firstFolder.Subdirectories)
             {
-                if (firstFolder.Subdirectories[i].Name == secondFolder.Subdirectories[i].Name)
+                secondFolder.Subdirectories.TryGetValue(subdir.Key, out FolderStructure subdiredit);
+
+                if (subdiredit != null)
                 {
-                    firstFolder.Subdirectories[i].Duplicate = true;
-                    secondFolder.Subdirectories[i].Duplicate = true;
-                    CompareFolders(firstFolder.Subdirectories[i], secondFolder.Subdirectories[i]);
+                    subdiredit.Duplicate = true;                    
+                    CompareFolders(subdir.Value, subdiredit);
+                    secondFolder.Subdirectories[subdir.Key] = subdiredit;
                 }
             }
         }
 
         private void GenerateTreeNodes(FolderStructure Folder, TreeViewItem rootNode)
         {
-            foreach (FileItem file in Folder.Files)
+            Folder.Files.OrderBy(i => i.Key);
+            foreach (KeyValuePair<string, bool> file in Folder.Files)
             {
                 TreeViewItem newnode = new TreeViewItem
                 {
-                    Header = file.FileName,
+                    Header = file.Key,
                     FontWeight = FontWeights.Normal
                 };
-                if (file.Duplicate)
+                if (file.Value)
                 {
                     newnode.Foreground = new SolidColorBrush(Colors.Red);
                 }
                 rootNode.Items.Add(newnode);
             }
-            foreach (FolderStructure subdir in Folder.Subdirectories)
-            {
+            Folder.Subdirectories.OrderBy(i => i.Key);
+            foreach (KeyValuePair<string, FolderStructure> subdir in Folder.Subdirectories)
+            {                
                 TreeViewItem newnode = new TreeViewItem
                 {
-                    Header = subdir.Name,
+                    Header = subdir.Key,
                     FontWeight = FontWeights.Normal
                 };
-                if (subdir.Duplicate)
+                if (subdir.Value.Duplicate)
                 {
                     newnode.Foreground = new SolidColorBrush(Colors.Red);
                 }
                 rootNode.Items.Add(newnode);
-                GenerateTreeNodes(subdir, newnode);
+                GenerateTreeNodes(subdir.Value, newnode);
             }
+        }
+        
+        private void ContentsFolder1_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is TreeViewItem tvi)
+            {
+                ExpandTargetNode(RootNode2, tvi.Header);
+            }
+        }
+        private void ContentsFolder2_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is TreeViewItem tvi)
+            {
+                ExpandTargetNode(RootNode1, tvi.Header);
+            }
+        }
+        /*
+        void FindTargetNode(TreeViewItem tvi, object NodeName)
+        {
+            if (tvi.Header.ToString() == NodeName.ToString())
+            {
+                tvi.IsSelected = true;
+                tvi.BringIntoView();
+                return;
+            }
+            //else { tvi.IsExpanded = false; }
+            if (tvi.HasItems)
+            {
+                foreach (var item in tvi.Items)
+                {
+                    TreeViewItem temp = item as TreeViewItem;
+                    ExpandTargetNode(temp, NodeName);
+                }
+            }
+        }*/
+        void ExpandTargetNode(TreeViewItem tvi, object NodeName)
+        {
+            if (tvi.Header.ToString() == NodeName.ToString())
+            {
+                tvi.IsExpanded = true;
+                tvi.BringIntoView();
+                return;
+            }
+            //else { tvi.IsExpanded = false; }
+            if (tvi.HasItems)
+            {
+                foreach (var item in tvi.Items)
+                {
+                    TreeViewItem temp = item as TreeViewItem;
+                    ExpandTargetNode(temp, NodeName);
+                }
+            }
+        }
+        void CollapseTargetNode(TreeViewItem tvi, object NodeName)
+        {
+            if (tvi.Header.ToString() == NodeName.ToString())
+            {
+                tvi.IsExpanded = false;
+                tvi.BringIntoView();
+                return;
+            }
+            if (tvi.HasItems)
+            {
+                foreach (var item in tvi.Items)
+                {
+                    TreeViewItem temp = item as TreeViewItem;
+                    CollapseTargetNode(temp, NodeName);
+                }
+            }
+        }
+
+        private void ContentsFolder1_Collapsed(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is TreeViewItem tvi)
+            {
+                CollapseTargetNode(RootNode2, tvi.Header);
+            }
+        }
+        private void ContentsFolder2_Collapsed(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is TreeViewItem tvi)
+            {
+                CollapseTargetNode(RootNode1, tvi.Header);
+            }
+        }
+
+        private void ContentsFolder1_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            /*
+            if (e.OriginalSource is TreeViewItem tvi)
+            {
+                FindTargetNode(RootNode2, tvi.Header);
+            }*/
         }
     }
 }
