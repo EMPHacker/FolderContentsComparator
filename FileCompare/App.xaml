@@ -4,6 +4,9 @@
              xmlns:local="clr-namespace:FileCompare"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="BorderBrush" Value="#adadad"/>
+            <Setter Property="Background" Value="#e1e1e1"/>
+        </Style>
     </Application.Resources>
 </Application>
