@@ -7,7 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
-namespace FileCompare
+namespace FolderContentsComparator
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -22,7 +22,7 @@ namespace FileCompare
 
             public Dictionary<string, bool> Files;
             public Dictionary<string, FolderStructure> Subdirectories;
-            
+
             public FolderStructure()
             {
                 Duplicate = false;
@@ -33,7 +33,7 @@ namespace FileCompare
         public class FileItem
         {
             public string FileName;
-            public bool Duplicate;            
+            public bool Duplicate;
         }
 
         FolderStructure Folder1;
@@ -60,7 +60,7 @@ namespace FileCompare
                 {
                     Name = dialog.FileName.Split('\\').Last(),
                     FolderPath = dialog.FileName
-            };
+                };
             }
         }
 
@@ -102,12 +102,14 @@ namespace FileCompare
                         RootNode1 = new TreeViewItem
                         {
                             Header = Folder1.Name,
-                            FontWeight = FontWeights.Normal
+                            FontWeight = FontWeights.Normal,
+                            IsExpanded = true
                         };
                         RootNode2 = new TreeViewItem
                         {
                             Header = Folder2.Name,
-                            FontWeight = FontWeights.Normal
+                            FontWeight = FontWeights.Normal,
+                            IsExpanded = true
                         };
 
                         Task CompGen = Task.Factory.StartNew(() =>
@@ -160,7 +162,7 @@ namespace FileCompare
                 ProcessSubdirectory(NewSubfolder, subdir);
             }
         }
-        
+
         private void CompareFolders(FolderStructure firstFolder, FolderStructure secondFolder)
         {
             foreach (KeyValuePair<string, bool> file in firstFolder.Files)
@@ -177,7 +179,7 @@ namespace FileCompare
 
                 if (subdiredit != null)
                 {
-                    subdiredit.Duplicate = true;                    
+                    subdiredit.Duplicate = true;
                     CompareFolders(subdir.Value, subdiredit);
                     secondFolder.Subdirectories[subdir.Key] = subdiredit;
                 }
@@ -202,7 +204,7 @@ namespace FileCompare
             }
             Folder.Subdirectories.OrderBy(i => i.Key);
             foreach (KeyValuePair<string, FolderStructure> subdir in Folder.Subdirectories)
-            {                
+            {
                 TreeViewItem newnode = new TreeViewItem
                 {
                     Header = subdir.Key,
@@ -216,7 +218,7 @@ namespace FileCompare
                 GenerateTreeNodes(subdir.Value, newnode);
             }
         }
-        
+
         private void ContentsFolder1_Expanded(object sender, RoutedEventArgs e)
         {
             if (e.OriginalSource is TreeViewItem tvi)

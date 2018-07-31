@@ -1,22 +1,21 @@
-﻿<Window x:Class="FileCompare.MainWindow"
+﻿<Window x:Class="FolderContentsComparator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:FileCompare"
+        xmlns:local="clr-namespace:FolderContentsComparator"
         mc:Ignorable="d"
-        Title="FSCUtility" Height="450" Width="800" MinWidth="280" MinHeight="200">
-    
+        Title="MainWindow" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="118"/>
         </Grid.RowDefinitions>
-        
+
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="20"/>
-                <RowDefinition Height="*"/>                
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20"/>
@@ -33,7 +32,7 @@
 
 
                 <TreeView Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" Name="ContentsFolder1" TreeViewItem.Expanded="ContentsFolder1_Expanded" TreeViewItem.Collapsed="ContentsFolder1_Collapsed" BorderBrush="#f7f7f7" SelectedItemChanged="ContentsFolder1_SelectedItemChanged"/>
-            
+
                 <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
 
                 <TreeView Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" Grid.Row="1" Name="ContentsFolder2" TreeViewItem.Expanded="ContentsFolder2_Expanded" TreeViewItem.Collapsed="ContentsFolder2_Collapsed" BorderBrush="#f7f7f7"/>
@@ -66,7 +65,7 @@
 
             <Border BorderBrush="{x:Null}" Grid.Column="1" Grid.Row="3">
                 <TextBlock Grid.Column="1" Grid.Row="3" HorizontalAlignment="Right" VerticalAlignment="Center" Text="Folder 2: "/>
-            </Border>            
+            </Border>
             <TextBox Grid.Column="2" Grid.Row="3" HorizontalAlignment="Stretch" Height="23" Margin="0, 0, 5, 0" TextWrapping="NoWrap" Name="URLFolder2"/>
             <Button Grid.Column="3" Grid.Row="3" HorizontalAlignment="Center" Content="Select" Height="23" Width="75" Name="BrowseFolder2" Click="BrowseFolder2_Click"/>
 
@@ -74,6 +73,6 @@
             <Button Grid.Column="3" Grid.Row="5" Name="CompareProcessBtn"  Content="Compare" Width="75" Click="CompareProcessBtn_Click"/>
 
         </Grid>
-        
+
     </Grid>
 </Window>
