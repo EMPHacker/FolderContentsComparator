@@ -102,8 +102,7 @@ namespace FolderContentsComparator
                         RootNode1 = new TreeViewItem
                         {
                             Header = Folder1.Name,
-                            FontWeight = FontWeights.Normal,
-                            IsExpanded = true
+                            FontWeight = FontWeights.Normal
                         };
                         RootNode2 = new TreeViewItem
                         {
@@ -128,6 +127,11 @@ namespace FolderContentsComparator
                             ContentsFolder2.Items.Add(RootNode2);
 
                             VisualFeedbackBar.Visibility = Visibility.Hidden;
+
+                            RootNode1.IsExpanded = true;
+                            RootNode1.BringIntoView();
+                            RootNode2.IsExpanded = true;
+                            RootNode2.BringIntoView();
                         }
                     }
                 }
